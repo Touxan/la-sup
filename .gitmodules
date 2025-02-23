@@ -1,0 +1,3 @@
+[submodule "la-sup-dashboard"]
+	path = la-sup-dashboard
+	url = https://github.com/Touxan/la-sup-dashboard.git

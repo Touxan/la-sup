@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 30s  # Intervalle global pour la collecte des métriques
+  evaluation_interval: 30s  # Fréquence d'évaluation des règles
+  scrape_timeout: 20s
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - "alertmanager:9093"  # Adresse d'AlertManager
+
+rule_files:
+  - /etc/prometheus/rules/alert_rules.yml
