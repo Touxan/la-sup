@@ -34,6 +34,22 @@ services:
       - "traefik.docker.network=monitoring"
 
   ###########################################################################
+  #                            LA-SUP-DASHBOARD
+  ###########################################################################
+  la-sup:
+    build: ./la-sup-dashboard/
+    container_name: la-sup-dashboard
+    restart: unless-stopped
+    networks:
+      - app-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.la-sup.rule=Host(`la-sup-dashboard.${DOMAIN_NAME}`)
+      - traefik.http.routers.la-sup.entrypoints=websecure
+      - traefik.http.routers.la-sup.tls.certresolver=myresolver
+      - traefik.http.services.la-sup.loadbalancer.server.port=80
+
+  ###########################################################################
   #                            PROMETHEUS
   ###########################################################################
   prometheus:
