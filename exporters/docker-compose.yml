@@ -1,0 +1,61 @@
+services:
+  # Node Exporter pour exporter les métriques système
+  node_exporter:
+    image: quay.io/prometheus/node-exporter
+    container_name: node_exporter
+    restart: unless-stopped
+    network_mode: "host"  # Utilise le mode "host" pour collecter les métriques système
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+
+  # cAdvisor pour exporter les métriques des conteneurs Docker
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  promtail:
+    image: grafana/promtail
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail-config.yml:/etc/promtail/promtail-config.yml
+      - ./security_logs.yaml:/etc/promtail/security_logs.yaml
+      - ./system_logs.yaml:/etc/promtail/system_logs.yaml
+    command: -config.file=/etc/promtail/promtail-config.yml -config.expand-env=true
+
+
+  falco:
+    image: falcosecurity/falco
+    container_name: falco
+    privileged: true  # Requis pour capturer les événements du noyau
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./falco.yaml:/etc/falco/falco.yaml
+      - ./falco_custom_rules.yaml:/etc/falco/falco_rules.local.yaml  # Ajout des règles personnalisées
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - /dev:/host/dev
+      - /proc:/host/proc:ro
+      - /boot:/host/boot:ro
+      - /lib/modules:/host/lib/modules:ro
+      - /usr:/host/usr:ro
+      - /etc:/host/etc:ro
+    environment:
+      - FALCO_PRIORITY=Notice

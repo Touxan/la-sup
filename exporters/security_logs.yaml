@@ -1,0 +1,41 @@
+- targets: ["localhost"]
+  labels:
+    job: security_logs
+    host: <HOST_LABEL>
+    __path__: /var/log/auth.log
+
+- targets: ["localhost"]
+  labels:
+    job: security_logs
+    host: <HOST_LABEL>
+    __path__: /var/log/auth.log.1
+
+- targets: ["localhost"]
+  labels:
+    job: security_logs
+    host: <HOST_LABEL>
+    __path__: /var/log/faillog
+
+- targets: ["localhost"]
+  labels:
+    job: security_logs
+    host: <HOST_LABEL>
+    __path__: /var/log/btmp
+
+- targets: ["localhost"]
+  labels:
+    job: security_logs
+    host: <HOST_LABEL>
+    __path__: /var/log/btmp.1
+
+- targets: ["localhost"]
+  labels:
+    job: security_logs
+    host: <HOST_LABEL>
+    __path__: /var/log/wtmp
+
+- targets: ["localhost"]
+  labels:
+    job: security_logs
+    host: <HOST_LABEL>
+    __path__: /var/log/kern.log
