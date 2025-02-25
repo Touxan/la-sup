@@ -4,7 +4,7 @@ services:
   ###########################################################################
   traefik:
     image: "traefik"
-    container_name: traefik
+    container_name: la-sup-traefik
     restart: always
     command:
       - "--accesslog=true"                
@@ -41,7 +41,7 @@ services:
     container_name: la-sup-dashboard
     restart: unless-stopped
     networks:
-      - app-network
+      - la-sup-network
     labels:
       - traefik.enable=true
       - traefik.http.routers.la-sup.rule=Host(`la-sup-dashboard.${DOMAIN_NAME}`)
@@ -54,7 +54,7 @@ services:
   ###########################################################################
   prometheus:
     image: prom/prometheus
-    container_name: prometheus
+    container_name: la-sup-prometheus
     ports:
       - "127.0.0.1:9090:9090"
     volumes:
@@ -90,7 +90,7 @@ services:
   ###########################################################################
   grafana:
     image: grafana/grafana
-    container_name: grafana
+    container_name: la-sup-grafana
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
@@ -121,7 +121,7 @@ services:
   ###########################################################################
   loki:
     image: grafana/loki
-    container_name: loki
+    container_name: la-sup-loki
     ports:
       - "127.0.0.1:3100:3100"
     volumes:
@@ -151,7 +151,7 @@ services:
   #                            N8N
   ###########################################################################
   n8n:
-    container_name: n8n
+    container_name: la-sup-n8n
     image: docker.n8n.io/n8nio/n8n
     ports:
       - "127.0.0.1:5678:5678"
