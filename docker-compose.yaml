@@ -1,3 +1,4 @@
+
 services:
   ###########################################################################
   #                            TRAEFIK
@@ -15,8 +16,6 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
       - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
       - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
@@ -39,15 +38,23 @@ services:
   la-sup:
     build: ./la-sup-dashboard/
     container_name: la-sup-dashboard
+    ports:
+      - "127.0.0.1:1604:1604"
     restart: unless-stopped
     networks:
       - la-sup-network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.la-sup.rule=Host(`la-sup-dashboard.${DOMAIN_NAME}`)
-      - traefik.http.routers.la-sup.entrypoints=websecure
-      - traefik.http.routers.la-sup.tls.certresolver=myresolver
-      - traefik.http.services.la-sup.loadbalancer.server.port=80
+
+      # HTTP Router
+      - traefik.http.routers.la-sup-http.rule=Host(`la-sup-dashboard.${DOMAIN_NAME}`)
+      - traefik.http.routers.la-sup-http.entrypoints=web
+
+      # HTTPS Router
+      - traefik.http.routers.la-sup-https.rule=Host(`la-sup-dashboard.${DOMAIN_NAME}`)
+      - traefik.http.routers.la-sup-https.entrypoints=websecure
+      - traefik.http.routers.la-sup-https.tls.certresolver=mytlschallenge
+
 
   ###########################################################################
   #                            PROMETHEUS
@@ -60,30 +67,19 @@ services:
     volumes:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.prometheus.rule=Host(`la-sup-prometheus.${DOMAIN_NAME}`)
-      - traefik.http.routers.prometheus.tls=true
-      - traefik.http.routers.prometheus.entrypoints=websecure
-      - traefik.http.routers.prometheus.tls.certresolver=mytlschallenge
-      - traefik.http.middlewares.prometheus.headers.SSLRedirect=true
-      - traefik.http.middlewares.prometheus.headers.STSSeconds=315360000
-      - traefik.http.middlewares.prometheus.headers.browserXSSFilter=true
-      - traefik.http.middlewares.prometheus.headers.contentTypeNosniff=true
-      - traefik.http.middlewares.prometheus.headers.forceSTSHeader=true
-      - traefik.http.middlewares.prometheus.headers.SSLHost=${DOMAIN_NAME}
-      - traefik.http.middlewares.prometheus.headers.STSIncludeSubdomains=true
-      - traefik.http.middlewares.prometheus.headers.STSPreload=true
-      - traefik.http.middlewares.prometheus-auth.basicauth.usersfile=/etc/traefik/.passwd
-      - traefik.http.routers.prometheus.middlewares=prometheus-auth
     networks:
       - la-sup-network
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=15d"
-      - "--storage.tsdb.path=/prometheus"
-      - "--web.enable-lifecycle"
-    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+
+      # HTTP Router
+      - traefik.http.routers.prometheus-http.rule=Host(`la-sup-prometheus.${DOMAIN_NAME}`)
+      - traefik.http.routers.prometheus-http.entrypoints=web
+
+      # HTTPS Router
+      - traefik.http.routers.prometheus-https.rule=Host(`la-sup-prometheus.${DOMAIN_NAME}`)
+      - traefik.http.routers.prometheus-https.entrypoints=websecure
+      - traefik.http.routers.prometheus-https.tls.certresolver=mytlschallenge
 
   ###########################################################################
   #                            GRAFANA
@@ -95,26 +91,19 @@ services:
       - "127.0.0.1:3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.grafana.rule=Host(`la-sup-grafana.${DOMAIN_NAME}`)
-      - traefik.http.routers.grafana.tls=true
-      - traefik.http.routers.grafana.entrypoints=websecure
-      - traefik.http.routers.grafana.tls.certresolver=mytlschallenge
-      - traefik.http.middlewares.grafana.headers.SSLRedirect=true
-      - traefik.http.middlewares.grafana.headers.STSSeconds=315360000
-      - traefik.http.middlewares.grafana.headers.browserXSSFilter=true
-      - traefik.http.middlewares.grafana.headers.contentTypeNosniff=true
-      - traefik.http.middlewares.grafana.headers.forceSTSHeader=true
-      - traefik.http.middlewares.grafana.headers.SSLHost=${DOMAIN_NAME}
-      - traefik.http.middlewares.grafana.headers.STSIncludeSubdomains=true
-      - traefik.http.middlewares.grafana.headers.STSPreload=true
     networks:
       - la-sup-network
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=PXXNhi9hr7Fubr5MNigpBTGYKzLeMX
-      - GF_SERVER_ROOT_URL=https://la-sup-grafana.${DOMAIN_NAME}.com    
-    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+
+      # HTTP Router
+      - traefik.http.routers.grafana-http.rule=Host(`la-sup-grafana.${DOMAIN_NAME}`)
+      - traefik.http.routers.grafana-http.entrypoints=web
+
+      # HTTPS Router
+      - traefik.http.routers.grafana-https.rule=Host(`la-sup-grafana.${DOMAIN_NAME}`)
+      - traefik.http.routers.grafana-https.entrypoints=websecure
+      - traefik.http.routers.grafana-https.tls.certresolver=mytlschallenge
 
   ###########################################################################
   #                            LOKI
@@ -127,25 +116,19 @@ services:
     volumes:
       - ./config/loki-config.yml:/etc/loki/loki-config.yml
       - loki_data:/loki
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.loki.rule=Host(`la-sup-loki.${DOMAIN_NAME}`)
-      - traefik.http.routers.loki.tls=true
-      - traefik.http.routers.loki.entrypoints=websecure
-      - traefik.http.routers.loki.tls.certresolver=mytlschallenge
-      - traefik.http.middlewares.loki.headers.SSLRedirect=true
-      - traefik.http.middlewares.loki.headers.STSSeconds=315360000
-      - traefik.http.middlewares.loki.headers.browserXSSFilter=true
-      - traefik.http.middlewares.loki.headers.contentTypeNosniff=true
-      - traefik.http.middlewares.loki.headers.forceSTSHeader=true
-      - traefik.http.middlewares.loki.headers.SSLHost=${DOMAIN_NAME}
-      - traefik.http.middlewares.loki.headers.STSIncludeSubdomains=true
-      - traefik.http.middlewares.loki.headers.STSPreload=true
-      - traefik.http.middlewares.loki-auth.basicauth.usersfile=/etc/traefik/.passwd
-      - traefik.http.routers.loki.middlewares=loki-auth
     networks:
       - la-sup-network
-    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+
+      # HTTP Router
+      - traefik.http.routers.loki-http.rule=Host(`la-sup-loki.${DOMAIN_NAME}`)
+      - traefik.http.routers.loki-http.entrypoints=web
+
+      # HTTPS Router
+      - traefik.http.routers.loki-https.rule=Host(`la-sup-loki.${DOMAIN_NAME}`)
+      - traefik.http.routers.loki-https.entrypoints=websecure
+      - traefik.http.routers.loki-https.tls.certresolver=mytlschallenge
 
   ###########################################################################
   #                            N8N
@@ -155,34 +138,19 @@ services:
     image: docker.n8n.io/n8nio/n8n
     ports:
       - "127.0.0.1:5678:5678"
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.n8n.rule=Host(`la-sup-n8n.${DOMAIN_NAME}`)
-      - traefik.http.routers.n8n.tls=true
-      - traefik.http.routers.n8n.entrypoints=websecure
-      - traefik.http.routers.n8n.tls.certresolver=mytlschallenge
-      - traefik.http.middlewares.n8n.headers.SSLRedirect=true
-      - traefik.http.middlewares.n8n.headers.STSSeconds=315360000
-      - traefik.http.middlewares.n8n.headers.browserXSSFilter=true
-      - traefik.http.middlewares.n8n.headers.contentTypeNosniff=true
-      - traefik.http.middlewares.n8n.headers.forceSTSHeader=true
-      - traefik.http.middlewares.n8n.headers.SSLHost=${DOMAIN_NAME}
-      - traefik.http.middlewares.n8n.headers.STSIncludeSubdomains=true
-      - traefik.http.middlewares.n8n.headers.STSPreload=true
-    environment:
-      - N8N_HOST=sup-n8n.${DOMAIN_NAME}
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=https
-      - NODE_ENV=production
-      - WEBHOOK_URL=https://la-sup-n8n.${DOMAIN_NAME}/
-      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
-      - N8N_BASIC_AUTH_ACTIVE=true
-    volumes:
-      - ../../:/home/node/files
-      - n8n_data:/home/node/.n8n
     networks:
       - la-sup-network
-    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+
+      # HTTP Router
+      - traefik.http.routers.n8n-http.rule=Host(`la-sup-n8n.${DOMAIN_NAME}`)
+      - traefik.http.routers.n8n-http.entrypoints=web
+
+      # HTTPS Router
+      - traefik.http.routers.n8n-https.rule=Host(`la-sup-n8n.${DOMAIN_NAME}`)
+      - traefik.http.routers.n8n-https.entrypoints=websecure
+      - traefik.http.routers.n8n-https.tls.certresolver=mytlschallenge
 
 networks:
   la-sup-network:
