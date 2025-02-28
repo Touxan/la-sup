@@ -39,7 +39,7 @@ services:
     build: ./la-sup-dashboard/
     container_name: la-sup-dashboard
     ports:
-      - "127.0.0.1:1604:1604"
+      - "127.0.0.1:1604:80"
     restart: unless-stopped
     networks:
       - la-sup-network
